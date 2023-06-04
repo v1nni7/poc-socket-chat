@@ -5,7 +5,7 @@ import { IoSendSharp } from "react-icons/io5";
 import { useEffect, useMemo, useState } from "react";
 
 export default function Home() {
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -13,7 +13,12 @@ export default function Home() {
     const value = e.currentTarget[0].value;
 
     try {
-      socket.emit("message", value);
+      socket.emit("message", {
+        message: value,
+        sender: socket.id,
+      });
+
+      console.log(socket.id);
 
       e.currentTarget[0].value = "";
     } catch (error) {
@@ -31,29 +36,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const handleNewMessage = (message:string) => {
+    const handleNewMessage = (message: string) => {
       setMessages((messages) => [...messages, message]);
-    }
+    };
 
     socket.on("message", handleNewMessage);
 
     return () => {
       socket.off("message", handleNewMessage);
-    }
-  }, [socket])
+    };
+  }, [socket]);
 
   return (
     <main className="flex items-center justify-center h-screen">
-      <div className="w-96 p-2 rounded-lg bg-neutral-800">
-        <div className="flex flex-col">
-          <div className="flex flex-col text-neutral-300">
-            {messages.map((message, index) => (
-              <div className="" key={index}>
-                {message}
+      <div className="w-96 p-2 rounded-lg bg-neutral-800 h-1/2">
+        <div className="flex flex-col justify-between h-full">
+          <div className="flex flex-col overflow-y-auto justify-end py-4 gap-2 h-full text-neutral-300">
+            {messages.map(({ message, sender }, index) => (
+              <div
+                className={`flex ${
+                  sender === socket.id ? "justify-end" : "justify-start"
+                }`}
+                key={index}
+              >
+                <div className={`bg-neutral-600/60 p-2 rounded-lg ${sender === socket.id ? 'rounded-br-none':'rounded-bl-none'}`}>{message}</div>
               </div>
             ))}
           </div>
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 ">
             <input
               type="text"
               placeholder="Type a message..."
