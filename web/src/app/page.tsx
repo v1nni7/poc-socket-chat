@@ -1,80 +1,37 @@
 "use client";
 
-import { io } from "socket.io-client";
-import { IoSendSharp } from "react-icons/io5";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const [messages, setMessages] = useState<any[]>([]);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitUsername = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const value = e.currentTarget[0].value;
 
-    try {
-      socket.emit("message", {
-        message: value,
-        sender: socket.id,
-      });
-
-      console.log(socket.id);
-
-      e.currentTarget[0].value = "";
-    } catch (error) {
-      console.log(error);
-    }
+    localStorage.setItem("username", value);
+    router.push("/chat");
   };
 
-  const socket = useMemo(() => {
-    return io("http://localhost:4000", {
-      withCredentials: true,
-      extraHeaders: {
-        "my-custom-header": "abcd",
-      },
-    });
-  }, []);
-
-  useEffect(() => {
-    const handleNewMessage = (message: string) => {
-      setMessages((messages) => [...messages, message]);
-    };
-
-    socket.on("message", handleNewMessage);
-
-    return () => {
-      socket.off("message", handleNewMessage);
-    };
-  }, [socket]);
-
   return (
-    <main className="flex items-center justify-center h-screen">
-      <div className="w-96 p-2 rounded-lg bg-neutral-800 h-1/2">
-        <div className="flex flex-col justify-between h-full">
-          <div className="flex flex-col overflow-y-auto justify-end py-4 gap-2 h-full text-neutral-300">
-            {messages.map(({ message, sender }, index) => (
-              <div
-                className={`flex ${
-                  sender === socket.id ? "justify-end" : "justify-start"
-                }`}
-                key={index}
-              >
-                <div className={`bg-neutral-600/60 p-2 rounded-lg ${sender === socket.id ? 'rounded-br-none':'rounded-bl-none'}`}>{message}</div>
-              </div>
-            ))}
-          </div>
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 ">
-            <input
-              type="text"
-              placeholder="Type a message..."
-              className="w-full p-2 text-lg text-neutral-400 placeholder:text-neutral-500 rounded-lg bg-transparent border-2 border-neutral-600 outline-none focus:border-neutral-500 transition-colors"
-            />
-            <button type="submit">
-              <IoSendSharp className="text-2xl text-neutral-500" />
-            </button>
-          </form>
-        </div>
-      </div>
-    </main>
+    <div className="h-full w-full flex items-center justify-center">
+      <form
+        onSubmit={handleSubmitUsername}
+        className="w-full flex items-center justify-center gap-2"
+      >
+        <input
+          type="text"
+          placeholder="Username"
+          className="p-2 rounded-lg outline-none placeholder:text-neutral-600 w-2/4 bg-transparent border-2 border-neutral-500 text-lg text-neutral-500 focus:border-neutral-600"
+        />
+        <button
+          type="submit"
+          className="bg-violet-500 p-2 border-2 border-violet-500 rounded-lg font-semibold text-neutral-300 hover:bg-violet-500/50"
+        >
+          Enviar
+        </button>
+      </form>
+    </div>
   );
 }
