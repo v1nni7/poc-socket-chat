@@ -1,7 +1,7 @@
-import server from "./socket";
+import server from './socket'
 
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 3000
 
 server.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+  console.log(`🚀 Servidor rodando na porta ${port}`)
+})

@@ -1,39 +1,34 @@
-import http from "http";
-import { Server } from "socket.io";
-import app from "./app";
+import app from './app'
+import { Server } from 'socket.io'
+import { createServer } from 'http'
 
-const server = http.createServer(app);
-
-const rooms = {};
+const server = createServer(app)
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["my-custom-header"],
-    credentials: true,
+    origin: '*',
+    methods: ['GET', 'POST'],
   },
-});
+})
 
-io.on("connection", (socket) => {
-  socket.on("join", ({ username, room }) => {
-    socket.join(room);
+io.on('connection', (socket) => {
+  socket.emit('me', socket.id)
 
-    socket.emit("message", {
-      message: `Welcome to ${room}, ${username}!`,
-      sender: "admin",
-    });
-
-    socket.broadcast.to(room).emit("message", {
-      message: `${username} has joined the room!`,
-      sender: "admin",
-    });
-  });
-
-  socket.on("message", ({ message, sender, room}) => {
-    console.log(message, sender, room)
-    io.to(room).emit("message", { message, sender });
+  socket.on('disconnect', () => {
+    socket.broadcast.emit('callEnded')
   })
-});
 
-export default server;
+  socket.on('callUser', (data) => {
+    io.to(data.userToCall).emit('callUser', {
+      signal: data.signalData,
+      from: data.from,
+      name: data.name,
+    })
+  })
+
+  socket.on('answerCall', (data) => {
+    io.to(data.to).emit('callAccepted', data.signal)
+  })
+})
+
+export default server
