@@ -30,7 +30,6 @@ import { HiOutlineEmojiHappy } from 'react-icons/hi'
 import { connect } from 'socket.io-client'
 import Peer from 'simple-peer'
 import { toast } from 'react-toastify'
-import Webcam from 'react-webcam'
 
 type VideoConferenceProps = {
   params: { callURL: string }
@@ -47,7 +46,6 @@ export default function VideoConference({
 
   const myVideo = useRef<HTMLVideoElement>(null)
   const userVideo = useRef<HTMLVideoElement>(null)
-  const connectionRef = useRef<RTCPeerConnection>()
 
   useEffect(() => {
     const name = JSON.parse(localStorage.getItem('name') as string)
@@ -64,12 +62,6 @@ export default function VideoConference({
         setStream(stream)
         if (myVideo.current) myVideo.current.srcObject = stream
       })
-
-    const peer = new Peer({
-      stream,
-      trickle: false,
-      initiator: true,
-    })
 
     socket.on('user-connected', (data) => {
       toast.info(`${data.name} conectou-se!`)
