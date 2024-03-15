@@ -28,7 +28,7 @@ import ProfileOne from '@/assets/images/pessoa1.jpg'
 import ProfileTwo from '@/assets/images/pessoa2.jpg'
 import { HiOutlineEmojiHappy } from 'react-icons/hi'
 import { connect } from 'socket.io-client'
-import Peer from 'simple-peer'
+
 import { toast } from 'react-toastify'
 
 type VideoConferenceProps = {
@@ -42,7 +42,7 @@ export default function VideoConference({
 }: VideoConferenceProps) {
   const [muted, setMuted] = useState(false)
   const [showVolume, setShowVolume] = useState(false)
-  const [stream, setStream] = useState<MediaStream>()
+  // const [stream, setStream] = useState<MediaStream>()
 
   const myVideo = useRef<HTMLVideoElement>(null)
   const userVideo = useRef<HTMLVideoElement>(null)
