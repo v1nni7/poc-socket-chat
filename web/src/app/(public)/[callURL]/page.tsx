@@ -1,8 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
-import Webcam from 'react-webcam'
+import { useEffect, useRef, useState } from 'react'
 import {
   BsBellFill,
   BsGridFill,
@@ -28,16 +27,59 @@ import ProfilePic from '@/assets/images/eu.jpeg'
 import ProfileOne from '@/assets/images/pessoa1.jpg'
 import ProfileTwo from '@/assets/images/pessoa2.jpg'
 import { HiOutlineEmojiHappy } from 'react-icons/hi'
+import { connect } from 'socket.io-client'
+import Peer from 'simple-peer'
+import { toast } from 'react-toastify'
+import Webcam from 'react-webcam'
 
 type VideoConferenceProps = {
   params: { callURL: string }
 }
+
+const socket = connect(process.env.NEXT_PUBLIC_SOCKET_URL as string)
 
 export default function VideoConference({
   params: { callURL },
 }: VideoConferenceProps) {
   const [muted, setMuted] = useState(false)
   const [showVolume, setShowVolume] = useState(false)
+  const [stream, setStream] = useState<MediaStream>()
+
+  const myVideo = useRef<HTMLVideoElement>(null)
+  const userVideo = useRef<HTMLVideoElement>(null)
+  const connectionRef = useRef<RTCPeerConnection>()
+
+  useEffect(() => {
+    const name = JSON.parse(localStorage.getItem('name') as string)
+
+    if (!name) {
+      const promptName = prompt('Qual é o seu nome?')
+
+      localStorage.setItem('name', JSON.stringify(promptName))
+    }
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: false })
+      .then((stream) => {
+        setStream(stream)
+        if (myVideo.current) myVideo.current.srcObject = stream
+      })
+
+    const peer = new Peer({
+      stream,
+      trickle: false,
+      initiator: true,
+    })
+
+    socket.on('user-connected', (data) => {
+      toast.info(`${data.name} conectou-se!`)
+    })
+
+    socket.emit('join-room', {
+      name,
+      callURL,
+    })
+  }, [])
 
   return (
     <>
@@ -84,7 +126,7 @@ export default function VideoConference({
           </div>
 
           <div className="col-span-5">
-            <div className="relative flex flex-col">
+            <div className="relative flex h-full flex-col">
               <div className="flex items-center justify-between">
                 <h1 className="text-lg">Daily - Time Nanofy</h1>
 
@@ -98,13 +140,24 @@ export default function VideoConference({
                   </button>
                 </div>
               </div>
-              <div className="grid flex-1 grid-cols-3 gap-4 py-12">
-                <Webcam className="rounded-2xl" />
-                <Webcam className="rounded-2xl" />
-                <Webcam className="rounded-2xl" />
-                <Webcam className="rounded-2xl" />
-                <Webcam className="rounded-2xl" />
-                <Webcam className="rounded-2xl" />
+              <div className="video-grid grid flex-1 grid-cols-3 gap-4 py-12">
+                {myVideo && (
+                  <video
+                    autoPlay
+                    playsInline
+                    ref={myVideo}
+                    className="rounded-2xl"
+                  />
+                )}
+
+                {userVideo && (
+                  <video
+                    autoPlay
+                    playsInline
+                    ref={userVideo}
+                    className="rounded-2xl"
+                  />
+                )}
               </div>
 
               <div className="flex items-center justify-center gap-4 py-12">

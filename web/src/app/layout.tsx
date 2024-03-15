@@ -1,7 +1,9 @@
 import './globals.css'
+import 'react-toastify/dist/ReactToastify.css'
 
 import type { Metadata } from 'next'
 import { Lexend_Deca as LexendDeca } from 'next/font/google'
+import { ToastContainer } from 'react-toastify'
 
 const inter = LexendDeca({ subsets: ['latin'] })
 
@@ -18,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`bg-slate-950 text-white ${inter.className}`}>
+        <ToastContainer />
         {children}
       </body>
     </html>
