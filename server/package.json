@@ -2,7 +2,7 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "build": "tsc --project tsconfig.json && tscpaths -p tsconfig.json -s ./src -o ./dist",
     "start": "node dist/server.js",
