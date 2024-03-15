@@ -42,7 +42,9 @@ export default function VideoConference({
 }: VideoConferenceProps) {
   const [muted, setMuted] = useState(false)
   const [showVolume, setShowVolume] = useState(false)
-  // const [stream, setStream] = useState<MediaStream>()
+  const [stream, setStream] = useState<MediaStream>()
+
+  console.log(stream)
 
   const myVideo = useRef<HTMLVideoElement>(null)
   const userVideo = useRef<HTMLVideoElement>(null)
