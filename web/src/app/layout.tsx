@@ -5,6 +5,8 @@ import type { Metadata } from 'next'
 import { Lexend_Deca as LexendDeca } from 'next/font/google'
 import { ToastContainer } from 'react-toastify'
 
+import Provider from './provider'
+
 const inter = LexendDeca({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -21,7 +23,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`bg-slate-950 text-white ${inter.className}`}>
         <ToastContainer />
-        {children}
+        <Provider>{children}</Provider>
       </body>
     </html>
   )

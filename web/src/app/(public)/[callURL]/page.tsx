@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { RefObject, useEffect, useRef, useState } from 'react'
 import {
   BsBellFill,
   BsGridFill,
@@ -28,8 +28,7 @@ import ProfileOne from '@/assets/images/pessoa1.jpg'
 import ProfileTwo from '@/assets/images/pessoa2.jpg'
 import { HiOutlineEmojiHappy } from 'react-icons/hi'
 import { connect } from 'socket.io-client'
-
-import { toast } from 'react-toastify'
+import Peer from 'peerjs'
 
 type VideoConferenceProps = {
   params: { callURL: string }
@@ -42,38 +41,39 @@ export default function VideoConference({
 }: VideoConferenceProps) {
   const [muted, setMuted] = useState(false)
   const [showVolume, setShowVolume] = useState(false)
-  const [stream, setStream] = useState<MediaStream>()
 
-  console.log(stream)
+  const videoGridRef = useRef<HTMLDivElement>()
+  const addVideoStream = (video: HTMLVideoElement, stream: MediaStream) => {
+    video.srcObject = stream
 
-  const myVideo = useRef<HTMLVideoElement>(null)
-  const userVideo = useRef<HTMLVideoElement>(null)
+    video.addEventListener('loadeddata', () => {
+      video.play()
+    })
+
+    videoGridRef.current?.append(video)
+  }
 
   useEffect(() => {
-    const name = JSON.parse(localStorage.getItem('name') as string)
+    const myPeer = new Peer({
+      initiator: true,
+      trickle: false,
+    })
 
-    if (!name) {
-      const promptName = prompt('Qual é o seu nome?')
-
-      localStorage.setItem('name', JSON.stringify(promptName))
-    }
+    const myVideo = document.createElement('video')
 
     navigator.mediaDevices
-      .getUserMedia({ video: true, audio: false })
-      .then((stream) => {
-        setStream(stream)
-        if (myVideo.current) myVideo.current.srcObject = stream
+      .getUserMedia({
+        video: true,
+        audio: false,
       })
+      .then((stream) => {
+        addVideoStream(myVideo, stream)
 
-    socket.on('user-connected', (data) => {
-      toast.info(`${data.name} conectou-se!`)
-    })
-
-    socket.emit('join-room', {
-      name,
-      callURL,
-    })
-  }, [])
+        myPeer.on('signal', (signal) => {
+          socket.emit('join-room', { callURL, signal })
+        })
+      })
+  }, [callURL])
 
   return (
     <>
@@ -134,8 +134,11 @@ export default function VideoConference({
                   </button>
                 </div>
               </div>
-              <div className="video-grid grid flex-1 grid-cols-3 gap-4 py-12">
-                {myVideo && (
+              <div
+                className="grid flex-1 grid-cols-3 gap-4 py-12"
+                ref={videoGridRef as RefObject<HTMLDivElement>}
+              >
+                {/* {myVideo && (
                   <video
                     autoPlay
                     playsInline
@@ -151,7 +154,7 @@ export default function VideoConference({
                     ref={userVideo}
                     className="rounded-2xl"
                   />
-                )}
+                )} */}
               </div>
 
               <div className="flex items-center justify-center gap-4 py-12">
