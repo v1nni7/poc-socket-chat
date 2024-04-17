@@ -4,6 +4,8 @@ export const ADD_PEER_STREAM = 'ADD_PEER_STREAM' as const
 export const REMOVE_PEER_STREAM = 'REMOVE_PEER_STREAM' as const
 export const ADD_PEER_NAME = 'ADD_PEER_NAME' as const
 export const ADD_ALL_PEERS = 'ADD_ALL_PEERS' as const
+export const REMOVE_PEER = 'REMOVE_PEER' as const
+export const UPDATE_PEER_STREAM = 'UPDATE_PEER_STREAM' as const
 
 export const addPeerStreamAction = (peerId: string, stream: MediaStream) => ({
   type: ADD_PEER_STREAM,
@@ -23,4 +25,14 @@ export const removePeerStreamAction = (peerId: string) => ({
 export const addAllPeersAction = (peers: Record<string, IPeer>) => ({
   type: ADD_ALL_PEERS,
   payload: { peers },
+})
+
+export const removePeerAction = (peerId: string) => ({
+  type: REMOVE_PEER,
+  payload: { peerId },
+})
+
+export const updatePeerStream = (peerId: string, stream: MediaStream) => ({
+  type: UPDATE_PEER_STREAM,
+  payload: { peerId, stream },
 })

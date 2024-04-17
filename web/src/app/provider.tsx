@@ -1,16 +1,23 @@
 'use client'
 
-import { ReactNode } from 'react'
-import { ChatProvider } from '@/context/chat-context'
-import { RoomProvider } from '@/context/room-context'
-import { UserProvider } from '@/context/user-context'
+import { type ReactNode } from 'react'
+
+import { Toaster } from '@/components/ui/toaster'
+import { ThemeProvider } from '@/components/theme-provider'
+import { SessionProvider } from '@/context/session-context'
+import { ModeToggle } from '@/components/toggle-dark-mode'
 
 export default function Provider({ children }: { children: ReactNode }) {
   return (
-    <UserProvider>
-      <RoomProvider>
-        <ChatProvider>{children}</ChatProvider>
-      </RoomProvider>
-    </UserProvider>
+    <ThemeProvider
+      enableSystem
+      attribute="class"
+      defaultTheme="system"
+      disableTransitionOnChange
+    >
+      <SessionProvider>{children}</SessionProvider>
+      <Toaster />
+      <ModeToggle />
+    </ThemeProvider>
   )
 }

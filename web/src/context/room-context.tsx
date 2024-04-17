@@ -1,64 +1,65 @@
+'use client'
+
 import {
-  createContext,
-  useEffect,
   useState,
-  useReducer,
-  ReactNode,
+  useEffect,
   useContext,
-  SetStateAction,
-  Dispatch,
+  useReducer,
   useCallback,
+  createContext,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
 } from 'react'
 
 import Peer from 'peerjs'
 import { ws } from '@/utils/ws'
 import { peersReducer, PeerState } from '@/reducers/peer-reducer'
 import {
-  addPeerStreamAction,
-  addPeerNameAction,
-  removePeerStreamAction,
+  removePeerAction,
   addAllPeersAction,
+  addPeerNameAction,
+  addPeerStreamAction,
+  removePeerStreamAction,
 } from '@/reducers/peer-actions'
 
 import { IPeer } from '@/types/peer'
-import { useUser } from './user-context'
 import { useRouter } from 'next/navigation'
-import { toast } from 'react-toastify'
+import { useSession } from './session-context'
 
 interface RoomValue {
   stream?: MediaStream
   setStream: Dispatch<SetStateAction<MediaStream | undefined>>
-  screenStream?: MediaStream
   peers: PeerState
-  shareScreen: () => void
   roomId: string
+  handleToggleMic: () => void
+  handleToggleCamera: () => void
   setRoomId: (id: string) => void
-  screenSharingId: string
   handleUserJoined: () => void
 }
 
 export const RoomContext = createContext<RoomValue>({
   peers: {},
-  shareScreen: () => {},
   setRoomId: () => {},
   setStream: () => {},
-  screenSharingId: '',
   roomId: '',
+  handleToggleMic: () => {},
+  handleToggleCamera: () => {},
   handleUserJoined: () => {},
 })
 
 export const RoomProvider = ({ children }: { children: ReactNode }) => {
   const { push } = useRouter()
-  const { userName, userId } = useUser()
+  const { user } = useSession()
   const [me, setMe] = useState<Peer>()
+  const [audio, setAudio] = useState(true)
+  const [video, setVideo] = useState(true)
   const [stream, setStream] = useState<MediaStream>()
-  const [screenStream, setScreenStream] = useState<MediaStream>()
   const [peers, dispatch] = useReducer(peersReducer, {})
-  const [screenSharingId, setScreenSharingId] = useState<string>('')
   const [roomId, setRoomId] = useState<string>('')
 
   const enterRoom = ({ roomId }: { roomId: 'string' }) => {
-    push(`/room/${roomId}`)
+    push(`/sala/${roomId}`)
   }
   const getUsers = ({
     participants,
@@ -69,108 +70,100 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const removePeer = (peerId: string) => {
+    dispatch(removePeerAction(peerId))
+  }
+
+  const removePeerStream = (peerId: string) => {
     dispatch(removePeerStreamAction(peerId))
   }
 
-  const switchStream = (stream: MediaStream) => {
-    Object.values(me?.connections || {}).forEach((connection: any) => {
-      const videoTrack: any = stream
-        ?.getTracks()
-        .find((track) => track.kind === 'video')
-      connection[0].peerConnection
-        .getSenders()
-        .find((sender: any) => sender.track.kind === 'video')
-        .replaceTrack(videoTrack)
-        .catch((err: any) => console.error(err))
-    })
-  }
-
-  const shareScreen = () => {
-    if (userId === screenSharingId) {
-      navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          switchStream(stream)
-          setScreenSharingId('')
-
-          screenStream?.getVideoTracks()[0].stop()
-        })
-
-      return
-    }
-
-    if (screenSharingId) {
-      toast.error(
-        'Não é possível compartilhar a tela enquanto outra pessoa está compartilhando',
-      )
-    } else {
-      navigator.mediaDevices.getDisplayMedia({}).then((stream) => {
-        switchStream(stream)
-        setScreenStream(stream)
-        setScreenSharingId(me?.id || '')
+  const handleToggleCamera = useCallback(async () => {
+    if (stream?.getVideoTracks().length === 0) {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio,
       })
+
+      setVideo(true)
+      setStream(mediaStream)
+
+      ws.emit('user-start-camera', {
+        peerId: user.id,
+        roomId,
+      })
+    } else {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio,
+      })
+
+      setVideo(false)
+      setStream(mediaStream)
+
+      ws.emit('user-stop-camera', { peerId: user.id, roomId })
     }
-  }
+  }, [stream, user.id, roomId, audio])
 
-  useEffect(() => {
-    if (screenStream) {
-      screenStream.getVideoTracks()[0].onended = () => {
-        shareScreen()
-      }
+  const handleToggleMic = useCallback(async () => {
+    if (stream?.getAudioTracks().length === 0) {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video,
+        audio: true,
+      })
+
+      setAudio(true)
+      setStream(mediaStream)
+
+      ws.emit('user-start-camera', {
+        peerId: user.id,
+        roomId,
+      })
+    } else {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video,
+        audio: false,
+      })
+
+      setAudio(false)
+      setStream(mediaStream)
+
+      ws.emit('user-stop-camera', { peerId: user.id, roomId })
     }
-  }, [screenStream])
-
-  const nameChangedHandler = ({
-    peerId,
-    userName,
-  }: {
-    peerId: string
-    userName: string
-  }) => {
-    dispatch(addPeerNameAction(peerId, userName))
-  }
+  }, [stream, user.id, roomId, video])
 
   useEffect(() => {
-    ws.emit('change-name', { peerId: userId, userName, roomId })
-  }, [userName, userId, roomId])
+    const fn = async () => {
+      const PeerJs = (await import('peerjs')).default
 
-  useEffect(() => {
-    const peer = new Peer(userId, {
-      host: 'localhost',
-      port: 9000,
-      path: '/myapp',
-    })
+      if (!user.id) return
 
-    setMe(peer)
+      const peer = new PeerJs(user.id, {
+        host: 'localhost',
+        port: 9000,
+        path: '/myapp',
+      })
+
+      setMe(peer)
+    }
+
+    fn()
 
     ws.on('room-created', enterRoom)
     ws.on('get-users', getUsers)
     ws.on('user-disconnected', removePeer)
-    ws.on('user-started-sharing', (peerId) => setScreenSharingId(peerId))
-    ws.on('user-stopped-sharing', () => setScreenSharingId(''))
-    ws.on('name-changed', nameChangedHandler)
 
     return () => {
       ws.off('room-created')
       ws.off('get-users')
       ws.off('user-disconnected')
-      ws.off('user-started-sharing')
-      ws.off('user-stopped-sharing')
       ws.off('user-joined')
-      ws.off('name-changed')
+      ws.off('user-started-camera')
+      ws.off('user-stopped-camera')
       me?.disconnect()
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (screenSharingId) {
-      ws.emit('start-sharing', { peerId: screenSharingId, roomId })
-    } else {
-      ws.emit('stop-sharing', roomId)
-    }
-  }, [screenSharingId, roomId])
+  }, [user])
 
   const handleUserJoined = useCallback(() => {
     if (!me) return
@@ -179,13 +172,14 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     ws.on('user-joined', ({ peerId, userName: name }) => {
       const call = me.call(peerId, stream, {
         metadata: {
-          userName,
+          userName: user.name,
         },
       })
 
       call.on('stream', (peerStream) => {
         dispatch(addPeerStreamAction(peerId, peerStream))
       })
+
       dispatch(addPeerNameAction(peerId, name))
     })
 
@@ -203,20 +197,43 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       ws.off('user-joined')
     }
-  }, [me, stream, userName])
+  }, [me, stream, user.name])
+
+  useEffect(() => {
+    ws.on('user-started-camera', ({ peerId }) => {
+      console.log('Usuário ' + peerId + ' ligou a camera')
+
+      if (!me) return
+      if (!stream) return
+
+      const call = me?.call(peerId, stream, {
+        metadata: {
+          userName: user.name,
+        },
+      })
+
+      call.on('stream', (peerStream) => {
+        dispatch(addPeerStreamAction(peerId, peerStream))
+      })
+    })
+    ws.on('user-stopped-camera', removePeerStream)
+  }, [handleUserJoined])
+
+  useEffect(() => {
+    handleUserJoined()
+  }, [handleUserJoined])
 
   return (
     <RoomContext.Provider
       value={{
         stream,
-        screenStream,
         peers,
-        shareScreen,
         roomId,
         setRoomId,
         setStream,
-        screenSharingId,
+        handleToggleMic,
         handleUserJoined,
+        handleToggleCamera,
       }}
     >
       {children}
