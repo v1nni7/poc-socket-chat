@@ -2,7 +2,15 @@
 
 import { useEffect } from 'react'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-import { Copy, Mic, MicOff, User, Video, VideoOff } from 'lucide-react'
+import {
+  Mic,
+  User,
+  Copy,
+  Video,
+  MicOff,
+  VideoOff,
+  PhoneOff,
+} from 'lucide-react'
 
 import { ws } from '@/utils/ws'
 
@@ -103,33 +111,37 @@ export default function RoomPage({ params: { roomId } }: RoomPageProps) {
             </div>
           )}
 
-          {peersToShow.map((peer) => (
-            <div key={peer.peerId + new Date().getTime()}>
-              {peer.stream && peer.stream.getVideoTracks().length > 0 ? (
-                <>
-                  <div className="relative">
-                    <VideoPlayer stream={peer.stream} />
+          {peersToShow.map((peer) => {
+            console.log(peer)
 
-                    <div className="absolute left-0 top-0 flex h-full w-full items-end">
-                      <span className="w-full p-2 text-white">
-                        {peer.userName}
-                      </span>
+            return (
+              <div key={peer.peerId + new Date().getTime()}>
+                {peer.stream && peer.stream.getVideoTracks().length > 0 ? (
+                  <>
+                    <div className="relative">
+                      <VideoPlayer stream={peer.stream} />
+
+                      <div className="absolute left-0 top-0 flex h-full w-full items-end">
+                        <span className="w-full p-2 text-white">
+                          {peer.userName}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="relative flex h-full w-full items-center justify-center rounded-xl border bg-muted">
+                    <span className="block rounded-full bg-muted-foreground p-6">
+                      <User className="size-12 text-white" />
+                    </span>
+
+                    <div className="absolute bottom-4 left-4">
+                      {peer.userName}
                     </div>
                   </div>
-                </>
-              ) : (
-                <div className="relative flex h-full w-full items-center justify-center rounded-xl border bg-muted">
-                  <span className="block rounded-full bg-muted-foreground p-6">
-                    <User className="size-12 text-white" />
-                  </span>
-
-                  <div className="absolute bottom-4 left-4">
-                    {peer.userName}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            )
+          })}
         </VideoPlayerGrid>
 
         <div className="flex items-center justify-center gap-2 py-4">
@@ -157,6 +169,15 @@ export default function RoomPage({ params: { roomId } }: RoomPageProps) {
             ) : (
               <VideoOff className="size-4" />
             )}
+          </Button>
+
+          <Button
+            size="icon"
+            type="button"
+            variant="destructive"
+            className="hover:bg-red-800"
+          >
+            <PhoneOff className="size-4" />
           </Button>
         </div>
 

@@ -13,12 +13,5 @@ export default function VideoPlayer({ stream }: { stream?: MediaStream }) {
     }
   }, [stream])
 
-  return (
-    <video
-      autoPlay
-      ref={videoRef}
-      data-testid="peer-video"
-      className="h-full w-full rounded-md"
-    />
-  )
+  return <video autoPlay ref={videoRef} className="h-full w-full rounded-md" />
 }

@@ -36,6 +36,7 @@ interface RoomValue {
   handleToggleCamera: () => void
   setRoomId: (id: string) => void
   handleUserJoined: () => void
+  handleDisconnectUser: () => void
 }
 
 export const RoomContext = createContext<RoomValue>({
@@ -46,6 +47,7 @@ export const RoomContext = createContext<RoomValue>({
   handleToggleMic: () => {},
   handleToggleCamera: () => {},
   handleUserJoined: () => {},
+  handleDisconnectUser: () => {},
 })
 
 export const RoomProvider = ({ children }: { children: ReactNode }) => {
@@ -114,7 +116,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       setAudio(true)
       setStream(mediaStream)
 
-      ws.emit('user-start-camera', {
+      ws.emit('user-start-audio', {
         peerId: user.id,
         roomId,
       })
@@ -127,7 +129,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       setAudio(false)
       setStream(mediaStream)
 
-      ws.emit('user-stop-camera', { peerId: user.id, roomId })
+      ws.emit('user-stop-audio', { peerId: user.id, roomId })
     }
   }, [stream, user.id, roomId, video])
 
@@ -216,8 +218,29 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
         dispatch(addPeerStreamAction(peerId, peerStream))
       })
     })
+
+    ws.on('user-stopped-audio', ({ peerId }) => {
+      if (!me) return
+      if (!stream) return
+
+      const call = me?.call(peerId, stream, {
+        metadata: {
+          userName: user.name,
+        },
+      })
+
+      call.on('stream', (peerStream) => {
+        dispatch(addPeerStreamAction(peerId, peerStream))
+      })
+    })
+
     ws.on('user-stopped-camera', removePeerStream)
   }, [handleUserJoined])
+
+  const handleDisconnectUser = () => {
+    me?.disconnect()
+    push('/')
+  }
 
   useEffect(() => {
     handleUserJoined()
@@ -234,6 +257,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
         handleToggleMic,
         handleUserJoined,
         handleToggleCamera,
+        handleDisconnectUser,
       }}
     >
       {children}
